@@ -46,7 +46,7 @@ a = 4 #THIS IS L
 def initialise(Jz, a):
     """ 
     decides L and the initial state to use depending on the value of Jz
-    Returns: L, initial states
+    Returns: L, list of initial states as Statevectors
     """
     if  Jz > 1:
         L = a
