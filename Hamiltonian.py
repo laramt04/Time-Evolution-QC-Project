@@ -17,6 +17,8 @@ import qiskit
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.synthesis import SuzukiTrotter
+from qiskit.primitives import StatevectorEstimator
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
@@ -121,8 +123,7 @@ def ClassicalComparison(L,Jz,qubit_measured,direction_measured,steps=100,t_tot=1
     elif Jz < -1:
         initial = initialise(Jz,L)[1][0]
     else:
-        print('Please pick J_z > 1 or J_z < -1')
-        return
+        raise ValueError('Please pick J_z > 1 or J_z < -1')
 
     #rotating middle qubit's spin to x-y plane
     ### This is the quantum bit that i should figure out classically ###
@@ -145,8 +146,7 @@ def ClassicalComparison(L,Jz,qubit_measured,direction_measured,steps=100,t_tot=1
     elif direction_measured == "Z" or direction_measured == "z":
         pauli = pauli_z
     else:
-        print("Please choose strings 'X', 'Y', or 'Z' for direction_measured")
-        return
+        raise ValueError("Please choose strings 'X', 'Y', or 'Z' for direction_measured")
     
     #creating our observable operator matrix, for our expectation value
     product = [np.eye(2) for i in range(L)]
@@ -178,3 +178,216 @@ def ClassicalComparison(L,Jz,qubit_measured,direction_measured,steps=100,t_tot=1
     t_values = np.array([dt*t for t in range(steps)])
 
     return (t_values,np.array(measurements))
+
+
+
+
+###############################################################################################################################################
+## Theoretical Implementation of Suzuki Trotter, with unlimited circuit depth
+
+def TheoreticalST(L,Jz,qubit_measured,direction_measured,steps,t_tot,order=1,reps=1,allzeros=True):
+    '''
+    Performs ST with qiskit's built-in function (with order ``order``), with ``reps`` repetitions of timestep dt = t_tot/steps.
+    To build results list, appends this ST circuit over and over to quantum circuit qt. 
+    The circuit then gets very very deep, hence why "theoretical" -- this is not the way it's actually done with physical quantum hardware -- see PhysicalST function
+
+    returns 
+
+    Parameters
+    ----------
+    L : int
+        number of qubits
+
+    Jz : float
+        J_z value
+     
+    qubit_measured : (int) 
+        which qubit (1 to L) is measured
+
+    direction_measured : (str) 
+        "X" "Y" or "Z", which projection operator is applied to the measured qubit
+    steps : (int) 
+        number of time steps
+    t_tot : (float) 
+        total time (in seconds? not seconds 'cause there are no hbars or cs)
+    order : int
+        order qiskit's Suzuki Trotter method. Autoset to 1
+    reps : int
+        repetitions of qiskit's Suzuki Trotter timestep, within the built in function. This is what gets appended to the circuit every time. Autoset to 1
+    allzeros : (bool) 
+        if Jz>1, True chooses the all |0> state, False chooses the all |1> state. Autoset to True
+
+    Returns
+    -------
+    Tuple
+        Tuple of arrays containing (t_steps,measurements)
+    '''
+    #creating hamiltonian
+    hamiltonian = hamiltonian1(L,Jz)
+
+    #Making PauliEvolutionGate, and SuzukiTrotter timestep circuit, circ
+    dt = t_tot / steps
+    gate = PauliEvolutionGate(operator=hamiltonian,time=dt)
+    st = SuzukiTrotter(order=order, reps=reps) 
+    circ = st.synthesize(gate)
+
+    # Define the observable we wish to estimate
+    paulistring=""
+    for i in range(L):
+        if i == qubit_measured - 1:
+            paulistring+=direction_measured
+        else:
+            paulistring+="I"
+    obs = SparsePauliOp([paulistring],coeffs=[1])
+
+    # Define the 'Estimator' primitive used to measure/estimate expectation values of observables
+    ### IS THIS WHAT NEEDS TO CHANGE WHEN RUNNING ON IBM?
+    estimator = StatevectorEstimator()
+
+    #getting initial state, according to Jz value
+    if Jz > 1:
+        all0, all1 = initialise(Jz,L)[1]
+        if allzeros==True:
+            initial = all0
+        else:
+            initial = all1
+    elif Jz < -1:
+        initial = initialise(Jz,L)[1][0]
+    else:
+        raise ValueError('Please pick J_z > 1 or J_z < -1')
+    
+    #rotating middle qubit's spin to x-y plane
+    qc = QuantumCircuit(int(L))
+    qc.initialize(initial) #initialize state
+    #apply rotation
+    middle = L //2 #picks L/2 int value
+    qc.ry(np.pi/2, middle) #rotation here is into x-y plane
+    initial = Statevector(qc)  #initial state, now rotated
+    #resetting quantum circuit with new rotated initial state (is this totally necessary?)
+    qc = QuantumCircuit(int(L))
+    qc.initialize(initial) #initialize state
+
+    # Prepare an empty list to store data and run a loop over timesteps
+    measurements = []
+
+    #tagging in ST timestep circuit `steps` times, measuring each time
+    for t in range(steps):
+        qc.append(circ,[i for i in range(L)])
+        pub = (qc, [obs])
+        result = estimator.run(pubs=[pub]).result()
+        resultval = result[0].data.evs[0]
+        measurements += [resultval]
+    
+    t_values = np.array([dt*t for t in range(steps)])
+
+    return (t_values,np.array(measurements))
+
+    
+
+
+
+
+###################################################################################################################################################
+#Actual implementation of ST, in a way that could be used for physical hardware
+def PhysicalST(L,Jz,qubit_measured,direction_measured,steps,t_tot,order=1,reps=5,allzeros=True):
+    '''
+    Performs ST with qiskit's built-in function (with order ``order``), with ``reps`` repetitions of timestep dt.
+    To build results list, runs this ST circuit with fixed reps, changing dt, so final time of single ST circuit runs over `steps` values from 0 to `t_tot`
+    Circuit depth stays the same, but a new circuit is initialized to build each timestep measurement result
+
+    returns 
+
+    Parameters
+    ----------
+    L : int
+        number of qubits
+
+    Jz : float
+        J_z value
+     
+    qubit_measured : (int) 
+        which qubit (1 to L) is measured
+
+    direction_measured : (str) 
+        "X" "Y" or "Z", which projection operator is applied to the measured qubit
+    steps : (int) 
+        number of time steps
+    t_tot : (float) 
+        total time (in seconds? not seconds 'cause there are no hbars or cs)
+    order : int
+        order qiskit's Suzuki Trotter method. Autoset to 1
+    reps : int
+        repetitions of qiskit's Suzuki Trotter timestep, within the built in function. This is the fixed circuit depth for the whole thing. Autoset to 5
+    allzeros : (bool) 
+        if Jz>1, True chooses the all |0> state, False chooses the all |1> state. Autoset to True
+
+    Returns
+    -------
+    Tuple
+        Tuple of arrays containing (t_steps,measurements)
+    '''
+    #creating hamiltonian
+    hamiltonian = hm.hamiltonian1(L,Jz)
+
+    #Setting order and reps of SuzukiTrotter method
+    st = SuzukiTrotter(order=order, reps=reps)
+
+    # Define the observable we wish to estimate
+    paulistring=""
+    for i in range(L):
+        if i == qubit_measured - 1:
+            paulistring+=direction_measured
+        else:
+            paulistring+="I"
+    obs = SparsePauliOp([paulistring],coeffs=[1])
+
+    # Define the 'Estimator' primitive used to measure/estimate expectation values of observables
+    ### IS THIS WHAT NEEDS TO CHANGE WHEN RUNNING ON IBM?
+    estimator = StatevectorEstimator()
+
+    #getting initial state, according to Jz value
+    if Jz > 1:
+        all0, all1 = hm.initialise(Jz,L)[1]
+        if allzeros==True:
+            initial = all0
+        else:
+            initial = all1
+    elif Jz < -1:
+        initial = hm.initialise(Jz,L)[1][0]
+    else:
+        raise ValueError('Please pick J_z > 1 or J_z < -1')
+
+    #rotating middle qubit's spin to x-y plane
+    qc = QuantumCircuit(int(L))
+    qc.initialize(initial) #initialize state
+    #apply rotation
+    middle = L //2 #picks L/2 int value
+    qc.ry(np.pi/2, middle) #rotation here is into x-y plane
+    initial = Statevector(qc)  #initial state, now rotated
+
+    # Prepare an empty list to store data and run a loop over timesteps
+    measurements = []
+
+    #looping over timesteps, initializing a new circuit each time
+    dt = t_tot/steps
+    t_values = [dt*t for t in range(steps)]
+    for timeval in t_values:
+        # #dt for ST circuit:
+        # dt = timeval/reps
+
+        #making PauliEvolutionGate and ST circuit
+        gate = PauliEvolutionGate(operator=hamiltonian,time=timeval)
+        circ = st.synthesize(gate)
+        #initialize circuit
+        qc = QuantumCircuit(int(L))
+        qc.initialize(initial) #initialize state
+        #appending the ST circuit
+        qc.append(circ,[i for i in range(L)])
+        pub = (qc, [obs])
+        result = estimator.run(pubs=[pub]).result()
+        resultval = result[0].data.evs[0]
+        measurements += [resultval]
+    
+    return (np.array(t_values),np.array(measurements))
+
+
