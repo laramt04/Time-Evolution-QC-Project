@@ -327,7 +327,7 @@ def PhysicalST(L,Jz,qubit_measured,direction_measured,steps,t_tot,order=1,reps=5
         Tuple of arrays containing (t_steps,measurements)
     '''
     #creating hamiltonian
-    hamiltonian = hm.hamiltonian1(L,Jz)
+    hamiltonian = hamiltonian1(L,Jz)
 
     #Setting order and reps of SuzukiTrotter method
     st = SuzukiTrotter(order=order, reps=reps)
@@ -347,13 +347,13 @@ def PhysicalST(L,Jz,qubit_measured,direction_measured,steps,t_tot,order=1,reps=5
 
     #getting initial state, according to Jz value
     if Jz > 1:
-        all0, all1 = hm.initialise(Jz,L)[1]
+        all0, all1 = initialise(Jz,L)[1]
         if allzeros==True:
             initial = all0
         else:
             initial = all1
     elif Jz < -1:
-        initial = hm.initialise(Jz,L)[1][0]
+        initial = initialise(Jz,L)[1][0]
     else:
         raise ValueError('Please pick J_z > 1 or J_z < -1')
 
