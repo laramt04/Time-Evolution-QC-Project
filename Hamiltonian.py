@@ -169,7 +169,7 @@ def ClassicalComparison(L,Jz,qubit_measured,direction_measured,steps=100,t_tot=1
 
         # Compute the expectation value of the Z projection of one of the qubits
 
-        expval = psi_t.T @ observable_m @ psi_t
+        expval = psi_t.conj().T @ observable_m @ psi_t
 
         # Save the above expectation value to the list we created at the start
         # (It's safe to only keep the real part because all observables are Hermitian, meaning they have real expectation values)
