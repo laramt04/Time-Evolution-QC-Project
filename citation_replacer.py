@@ -7,7 +7,7 @@ import os
 import bibtexparser
 
 #gets notebook from vscode
-NB_PATH  = sys.argv[1] if len(sys.argv) > 1 else "referencestest.ipynb"
+NB_PATH  = sys.argv[1] if len(sys.argv) > 1 else "report.ipynb"
 BIB_PATH = os.path.join(os.path.dirname(os.path.abspath(NB_PATH)), "ref.bib")
 
 #gets bib file for refrences
