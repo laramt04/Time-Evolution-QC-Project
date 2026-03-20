@@ -292,7 +292,7 @@ plt.show()
 # physical vs exact
 # --- 5.1 PhysicalST vs Exact: Jz = 1.1 ---
 # here, choosing t_tot = 6 to see where they start to diverge, even without noise
-L, Jz, steps, t_tot, reps = 5, 1.1, 150, 6, 50
+L, Jz, steps, t_tot, reps = , 1.1, 150, 6, 50
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
