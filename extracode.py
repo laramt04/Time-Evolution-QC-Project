@@ -338,3 +338,75 @@ for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
 
 plt.tight_layout()
 plt.show()
+
+
+
+#IBM quantum computer data and plots 
+# Load the Qiskit Runtime service
+from qiskit_ibm_runtime import QiskitRuntimeService, Session
+try:
+    with open('apikey3.json') as file:
+        api_key = json.load(file)
+except:
+    print("No API key found: make sure to modify this code and enter your API key manually in the below command.")
+QiskitRuntimeService.save_account(channel='ibm_quantum_platform', instance="open-instance", token=api_key["apikey"], overwrite=True, set_as_default=True)
+
+# # Load saved credentials
+service = QiskitRuntimeService()
+# # Use the least busy backend, or uncomment the loading of a specific backend like "ibm_brisbane".
+backend = service.least_busy(operational=True, simulator=False, min_num_qubits=127)
+L=5
+Jz=1.1
+reps=10
+qubit_measured = 3
+direction_measured = 'X'
+#creating hamiltonian
+hamiltonian = hamiltonian1(L,Jz)
+#Setting order and reps of SuzukiTrotter method
+st = SuzukiTrotter(order=1, reps=reps)
+psi0 = initialise(Jz, L, allzeros=True, rotate_middle=True)
+# Define the observable we wish to estimate
+paulistring=""
+for i in range(L):
+     if i == qubit_measured - 1:
+         paulistring+=direction_measured
+     else:
+         paulistring+="I"
+obs = SparsePauliOp([paulistring],coeffs=[1])
+target = backend.target
+pm = generate_preset_pass_manager(target=target, optimization_level=3)
+estimator = Estimator(mode=backend)
+#t_values = np.log10(np.array(range(1,100,10)))
+t_values = np.logspace(-2, np.log10(5), 10)
+xmeasurements=[]
+for timeval in t_values:
+        gate = PauliEvolutionGate(operator=hamiltonian, time=timeval)
+        circ = st.synthesize(gate)
+        qc   = QuantumCircuit(L)
+        qc.initialize(psi0.data)
+        qc.append(circ, range(L))
+        isa_qc = pm.run(qc)
+        isa_obs = obs.apply_layout(isa_qc.layout)
+        result = estimator.run(pubs=[(isa_qc, [isa_obs])]).result()
+        xmeasurements.append(result[0].data.evs[0]) 
+tclass,classic = ClassicalComparison(L,Jz,qubit_measured,direction_measured,t_tot=t_values[-1])
+tphys, phys = PhysicalST(L, Jz, qubit_measured, direction_measured,t_tot=t_values[-1])
+
+plt.figure(figsize=(18,5))
+
+# Data from quantum hardware
+plt.plot(t_values, xmeasurements, 'o', label="Real Quantum Computer Chip")
+# Suzuki–Trotter physical simulation
+plt.plot(tphys, phys, label="Physical Suzuki–Trotter")
+# Classical model
+plt.plot(tclass, classic, label="Classical Model")
+
+plt.xlabel(r'$t\ (eV^{-1})$')
+plt.ylabel(rf'$\langle {direction_measured}(t) \rangle$')
+plt.title(rf'Time evolution of $\langle {direction_measured}(t) \rangle$ (qubit N°{qubit_measured} of 5 qubits), $J_z={Jz}$')
+
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show() #was then changed for each expectation value
