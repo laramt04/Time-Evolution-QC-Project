@@ -271,7 +271,7 @@ plt.show()
 # THIS CODE BLOCK TAKES ~5 mins TO RUN
 # --- 5.1 TheoreticalST vs Exact (benchmark, not hardware-compatible): Jz = 1.1 ---
 # Shows that the Qiskit built-in Trotter matches almost exactly when circuit depth grows freely
-L, Jz, steps, t_tot = 4, 1.1, 150, 5
+L, Jz, steps, t_tot = 5, 1.1, 150, 5
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
@@ -292,7 +292,7 @@ plt.show()
 # physical vs exact
 # --- 5.1 PhysicalST vs Exact: Jz = 1.1 ---
 # here, choosing t_tot = 6 to see where they start to diverge, even without noise
-L, Jz, steps, t_tot, reps = 4, 1.1, 150, 6, 50
+L, Jz, steps, t_tot, reps = 5, 1.1, 150, 6, 50
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
