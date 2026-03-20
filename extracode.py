@@ -268,7 +268,7 @@ plt.show()
 
 
 
-# theoretical vs exact
+# theoreticaly vs exact
 # THIS CODE BLOCK TAKES ~5 mins TO RUN
 # --- 5.1 TheoreticalST vs Exact (benchmark, not hardware-compatible): Jz = 1.1 ---
 # Shows that the Qiskit built-in Trotter matches almost exactly when circuit depth grows freely
