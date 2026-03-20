@@ -273,25 +273,39 @@ plt.show()
 # Shows that the Qiskit built-in Trotter matches almost exactly when circuit depth grows freely
 L, Jz, steps, t_tot = 5, 1.1, 150, 5
 
-fig, axes = plt.subplots(L, 3, figsize=(18, L * 3))  # 5 rows × 3 cols
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
+    for q in range(1, L + 1):
+        t_ex, ex   = ClassicalComparison(L, Jz, q, direction, steps, t_tot)
+        t_th, th_  = TheoreticalST(L, Jz, q, direction, steps, t_tot, allzeros, order=1, reps=1)
+        ax.plot(t_ex, ex,       label=rf'Exact $\langle {label}_{q}\rangle$')
+        ax.plot(t_th, th_, '--', label=rf'TheoreticalST $\langle {label}_{q}\rangle$')
+    ax.set_xlabel(r'$t\ (eV^{-1})$')
+    ax.set_ylabel(rf'$\langle {label}(t) \rangle$')
+    ax.set_title(rf'TheoreticalST vs Exact: $\langle {label} \rangle$, $J_z={Jz}$')
+    ax.set_ylim([-1.1, 1.1])
+    ax.legend(fontsize=7)
+plt.tight_layout()
+plt.show()
+
+L, Jz, steps, t_tot, reps = 5, 1.1, 150, 6, 50  
+fig, axes = plt.subplots(L, 3, figsize=(18, L * 3))
 
 for q in range(1, L + 1):
     for col, (direction, label) in enumerate(zip(['X', 'Y', 'Z'], ['X', 'Y', 'Z'])):
-        ax = axes[q - 1, col]  # row = qubit index, col = direction
+        ax = axes[q - 1, col]
 
-        t_ex, ex   = ClassicalComparison(L, Jz, q, direction, steps, t_tot)
-        t_th, th_  = TheoreticalST(L, Jz, q, direction, steps, t_tot, allzeros, order=1, reps=1)
+        t_ex, ex  = ClassicalComparison(L, Jz, q, direction, steps, t_tot)
+        t_th, th_ = PhysicalST(L, Jz, q, direction, steps, t_tot,
+                                allzeros=True, order=1, reps=reps)  # ← fixed
 
-        ax.plot(t_ex, ex,        label=rf'Exact')
-        ax.plot(t_th, th_, '--', label=rf'TheoreticalST')
-
+        ax.plot(t_ex, ex,        label='Exact')
+        ax.plot(t_th, th_, '--', label='PhysicalST')
         ax.set_xlabel(r'$t\ (eV^{-1})$')
         ax.set_ylabel(rf'$\langle {label}_{q}(t) \rangle$')
         ax.set_title(rf'$\langle {label}_{q} \rangle$, $J_z={Jz}$')
         ax.set_ylim([-1.1, 1.1])
         ax.legend(fontsize=7)
-
-plt.suptitle(rf'TheoreticalST vs Exact, $J_z={Jz}$', fontsize=14, y=1.01)
 plt.tight_layout()
 plt.show()
 
@@ -299,7 +313,7 @@ plt.show()
 # physical vs exact
 # --- 5.1 PhysicalST vs Exact: Jz = 1.1 ---
 # here, choosing t_tot = 6 to see where they start to diverge, even without noise
-L, Jz, steps, t_tot, reps = , 1.1, 150, 6, 50
+L, Jz, steps, t_tot, reps = 5, 1.1, 150, 6, 50
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
@@ -313,6 +327,26 @@ for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
     ax.set_title(rf'PhysicalST vs Exact: $\langle {label} \rangle$, $J_z={Jz}$')
     ax.set_ylim([-1.1, 1.1])
     ax.legend(fontsize=7)
+plt.tight_layout()
+plt.show()
+
+L, Jz, steps, t_tot, reps = 5, 1.1, 150, 6, 50  
+fig, axes = plt.subplots(L, 3, figsize=(18, L * 3))
+for q in range(1, L + 1):
+    for col, (direction, label) in enumerate(zip(['X', 'Y', 'Z'], ['X', 'Y', 'Z'])):
+        ax = axes[q - 1, col]
+
+        t_ex, ex  = ClassicalComparison(L, Jz, q, direction, steps, t_tot)
+        t_th, th_ = PhysicalST(L, Jz, q, direction, steps, t_tot,
+                                allzeros=True, order=1, reps=reps)  # ← fixed
+
+        ax.plot(t_ex, ex,        label='Exact')
+        ax.plot(t_th, th_, '--', label='PhysicalST')
+        ax.set_xlabel(r'$t\ (eV^{-1})$')
+        ax.set_ylabel(rf'$\langle {label}_{q}(t) \rangle$')
+        ax.set_title(rf'$\langle {label}_{q} \rangle$, $J_z={Jz}$')
+        ax.set_ylim([-1.1, 1.1])
+        ax.legend(fontsize=7)
 plt.tight_layout()
 plt.show()
 
