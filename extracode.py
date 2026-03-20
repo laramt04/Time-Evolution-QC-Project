@@ -3,7 +3,6 @@ num_qubits = H.num_qubits
 
 # start from |0000>
 # rotate the middle qubit into the x-y plane
-
 initial_state = initialise(Jz, L, allzeros=True, rotate_middle=True).data
 
 # time parameters
