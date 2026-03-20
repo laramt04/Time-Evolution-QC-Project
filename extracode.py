@@ -296,7 +296,7 @@ for q in range(1, L + 1):
         ax = axes[q - 1, col]
 
         t_ex, ex  = ClassicalComparison(L, Jz, q, direction, steps, t_tot)
-        t_th, th_ = PhysicalST(L, Jz, q, direction, steps, t_tot,
+        t_th, th_ = TheoreticalST(L, Jz, q, direction, steps, t_tot,
                                 allzeros=True, order=1, reps=reps)  # ← fixed
 
         ax.plot(t_ex, ex,        label='Exact')
