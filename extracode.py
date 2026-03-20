@@ -309,3 +309,33 @@ for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
     ax.legend(fontsize=7)
 plt.tight_layout()
 plt.show()
+
+
+
+#IBM FEZ data
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+for ax, direction, label in zip(axes, ['X','Y','Z'], ['X','Y','Z']):
+    for q in range(1, L + 1):
+        col = colors[q - 1]
+        d = data[(direction, q)]
+        ax.plot(d['t_ex'], d['ex'],  color=col, linestyle='-')
+        ax.plot(d['t_st'], d['st'], color=col, linestyle='--')
+        ax.plot(d['t_ns'], d['ns'], color=col, linestyle=':')
+
+    qubit_handles = [mlines.Line2D([], [], color=colors[q], label=rf'$q_{q+1}$')
+                     for q in range(L)]
+    style_handles = [mlines.Line2D([], [], color='black', linestyle='-',  label='Exact'),
+                     mlines.Line2D([], [], color='black', linestyle='--', label='PhysicalST'),
+                     mlines.Line2D([], [], color='black', linestyle=':',  label='Noisy')]
+
+    leg1 = ax.legend(handles=qubit_handles, fontsize=6, loc='upper left')
+    ax.add_artist(leg1)
+    ax.legend(handles=style_handles, fontsize=6, loc='upper right')
+
+    ax.set_xlabel(r'$t\ (eV^{-1})$')
+    ax.set_ylabel(rf'$\langle {label}(t) \rangle$')
+    ax.set_title(rf'PhysicalST + IBM Fez Noise: $\langle {label} \rangle$, {reps} ST reps')
+    ax.set_ylim([-1.1, 1.1])
+
+plt.tight_layout()
+plt.show()
